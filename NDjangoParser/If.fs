@@ -138,30 +138,6 @@ module internal If =
         let right = new FilterExpression(parser, right)
         Node(left:>INode :: [right], compare left right comparer)
 
-    type TagNode(
-                provider,
-                token,
-                tag,
-                expression: Node, 
-                node_list_true: NDjango.Interfaces.INodeImpl list, 
-                node_list_false: NDjango.Interfaces.INodeImpl list
-                ) =
-        inherit NDjango.ParserNodes.TagNode(provider, token, tag)
-             
-        override x.walk manager walker =
-            match expression.Resolve walker.context with
-            | true -> {walker with parent=Some walker; nodes=node_list_true}
-            | false -> {walker with parent=Some walker; nodes=node_list_false}
-
-        override x.elements =
-            base.elements
-                @ expression.elements
-            
-        override x.Nodes =
-            base.Nodes 
-                |> Map.add (NDjango.Constants.NODELIST_IFTAG_IFTRUE) (node_list_true |> Seq.map (fun node -> (node :?> INode)))
-                |> Map.add (NDjango.Constants.NODELIST_IFTAG_IFFALSE) (node_list_false |> Seq.map (fun node -> (node :?> INode)))
-
     [<NDjango.ParserNodes.Description("Outputs the content of enclosed tags based on expression evaluation result.")>]
     type Tag() =
 
@@ -253,4 +229,27 @@ module internal If =
                     :> NDjango.Interfaces.INodeImpl),
                     context, remaining2)
 
+    and TagNode(
+                provider,
+                token,
+                tag,
+                expression: Node, 
+                node_list_true: NDjango.Interfaces.INodeImpl list, 
+                node_list_false: NDjango.Interfaces.INodeImpl list
+                ) =
+        inherit NDjango.ParserNodes.TagNode(provider, token, tag)
+             
+        override x.walk manager walker =
+            match expression.Resolve walker.context with
+            | true -> {walker with parent=Some walker; nodes=node_list_true}
+            | false -> {walker with parent=Some walker; nodes=node_list_false}
+
+        override x.elements =
+            base.elements
+                @ expression.elements
+            
+        override x.Nodes =
+            base.Nodes 
+                |> Map.add (NDjango.Constants.NODELIST_IFTAG_IFTRUE) (node_list_true |> Seq.map (fun node -> (node :?> INode)))
+                |> Map.add (NDjango.Constants.NODELIST_IFTAG_IFFALSE) (node_list_false |> Seq.map (fun node -> (node :?> INode)))
 

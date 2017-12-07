@@ -34,23 +34,7 @@ module internal Filter =
 
     let FILTER_VARIABLE_NAME = "$filter"
 
-    type FilterNode(provider, token, tag, filter: FilterExpression, node_list) =
-        inherit TagNode(provider, token, tag)
-
-        override this.walk manager walker = 
-            let reader = 
-                new NDjango.ASTWalker.Reader (manager, {walker with parent=None; nodes=node_list; context=walker.context}) 
-
-            match filter.ResolveForOutput manager
-                     {walker with context=walker.context.add(FILTER_VARIABLE_NAME, (reader.ReadToEnd():>obj))}
-                with
-            | Some w -> w
-            | None -> walker
-            
-        override x.nodelist = node_list
-        
-        override x.elements = (filter :> INode) :: base.elements
-
+    
     /// Filters the contents of the block through variable filters.
     /// 
     /// Filters can also be piped through each other, and they can have
@@ -79,4 +63,22 @@ module internal Filter =
                                 node_list,
                                 remaining))
                 
+
+    and FilterNode(provider, token, tag, filter: FilterExpression, node_list) =
+        inherit TagNode(provider, token, tag)
+
+        override this.walk manager walker = 
+            let reader = 
+                new NDjango.ASTWalker.Reader (manager, {walker with parent=None; nodes=node_list; context=walker.context}) 
+
+            match filter.ResolveForOutput manager
+                     {walker with context=walker.context.add(FILTER_VARIABLE_NAME, (reader.ReadToEnd():>obj))}
+                with
+            | Some w -> w
+            | None -> walker
+            
+        override x.nodelist = node_list
+        
+        override x.elements = (filter :> INode) :: base.elements
+
                

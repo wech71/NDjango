@@ -1,6 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2010
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NDjangoDesigner", "NDjangoDesigner\NDjangoDesigner.csproj", "{3AC5B05C-E4FF-4C90-89CA-A1158F0815E5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{2B778C64-A1D0-45E7-9455-16DEA05706CA} = {2B778C64-A1D0-45E7-9455-16DEA05706CA}
@@ -137,5 +139,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2DB391DC-BA46-448D-99DC-5A105370BF61}
 	EndGlobalSection
 EndGlobal

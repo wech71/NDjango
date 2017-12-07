@@ -225,27 +225,9 @@ module internal LoaderTags =
 /// See also: {% include %}.
 
     type Reader = Path of string | TextReader of System.IO.TextReader
-
-    type SsiNode(provider, token, tag, reader: Reader, loader: string->TextReader) = 
-        inherit TagNode(provider, token, tag)
-
-        override this.walk manager walker =
-            let templateReader =  
-                match reader with 
-                | Path path -> loader path
-                | TextReader reader -> reader
-            let bufarray = Array.create 4096 ' '
-            let length = templateReader.Read(bufarray, 0, bufarray.Length)
-            let buffer = Array.sub bufarray 0 length |> Seq.fold (fun status item -> status + string item) "" 
-            let nodes = 
-                if length = 0 
-                then templateReader.Close(); walker.nodes
-                else (new SsiNode(provider, token, tag, TextReader templateReader, loader) :> INodeImpl) :: walker.nodes
-            {walker with buffer = buffer; nodes=nodes}
-
+    
     [<Description("Outputs the contents of a given file into the page.")>]
     type SsiTag() =
-
         interface ITag with
             member x.is_header_tag = false
             member this.Perform token context tokens = 
@@ -263,3 +245,19 @@ module internal LoaderTags =
                 | _ ->
                     raise (SyntaxError ("malformed 'ssi' tag"))
                 
+    and SsiNode(provider, token, tag, reader: Reader, loader: string->TextReader) = 
+        inherit TagNode(provider, token, tag)
+
+        override this.walk manager walker =
+            let templateReader =  
+                match reader with 
+                | Path path -> loader path
+                | TextReader reader -> reader
+            let bufarray = Array.create 4096 ' '
+            let length = templateReader.Read(bufarray, 0, bufarray.Length)
+            let buffer = Array.sub bufarray 0 length |> Seq.fold (fun status item -> status + string item) "" 
+            let nodes = 
+                if length = 0 
+                then templateReader.Close(); walker.nodes
+                else (new SsiNode(provider, token, tag, TextReader templateReader, loader) :> INodeImpl) :: walker.nodes
+            {walker with buffer = buffer; nodes=nodes}

@@ -101,7 +101,110 @@ module internal For =
         parentloop:  obj
         }
 
-    type private ParentContextDescriptor(orig: IDjangoType) =
+    [<NDjango.ParserNodes.Description("Loops over each item in a collection.")>]
+    type Tag() =
+
+        interface NDjango.Interfaces.ITag with 
+            member x.is_header_tag = false
+            member this.Perform token context tokens =
+                let enumerator, variables, reversed = 
+                    match List.rev token.Args with
+                        | var::MatchToken("in")::syntax -> 
+                            Some var,
+                            syntax,
+                            false
+                        | MatchToken("reversed")::var::MatchToken("in")::syntax -> 
+                            Some var,
+                            syntax,
+                            true
+                        | _ -> 
+                            None,
+                            [],
+                            false
+
+                let enumerator = 
+                    match enumerator with
+                    | Some e -> Some (FilterExpression(context, e))
+                    | None -> None
+
+                // extract variable names from tokens, (including splitting apart names stuck together in a single token separated by ',')
+                let variables = 
+                    variables |> 
+                    List.rev |>  
+                    List.fold 
+                        (fun external_accumulator token -> // for every token
+                            external_accumulator @
+                                (token.RawText.Split([|','|], StringSplitOptions.RemoveEmptyEntries) |>
+                                    Array.toList |>
+                                    List.fold 
+                                        (fun internal_accumulator variable -> // for every variable name
+                                            match external_accumulator |> List.tryFind (fun item -> fst item = variable),
+                                                  internal_accumulator |> List.tryFind (fun item -> fst item = variable),
+                                                  variable = "forloop" with
+                                            | _, _, true ->
+                                                internal_accumulator @
+                                                [
+                                                    (variable, 
+                                                           Some ({new ErrorNode(context,Text token,
+                                                                    new Error(1, "Loop variable named 'forloop' will not be availble in the for loop body"))
+                                                                  with override x.elements = []
+                                                                  } :> INode)
+                                                    )
+                                                    ]
+                                            | None, None, false ->
+                                                internal_accumulator @ [(variable, None)]
+                                            | _, _, _ ->
+                                                internal_accumulator @ 
+                                                [
+                                                    (variable, 
+                                                           Some ({new ErrorNode(context,Text token,
+                                                                    new Error(1, "Duplicate name '" + variable + "' in the variable list"))
+                                                                  with override x.elements = []
+                                                                  } :> INode)
+                                                    )
+                                                    ]
+                                            )
+                                        [] 
+                                )
+                            ) 
+                        []  
+
+                let variable_descriptors =
+                    variables |> 
+                        List.filter (fun var -> (snd var).IsNone) |> List.map (fun var -> NDjango.TypeResolver.ValueDjangoType(fst var) :> IDjangoType)
+                let variable_descriptors = (ForContextDescriptor(context) :> IDjangoType) :: variable_descriptors
+
+                let node_list_body, remaining = 
+                    (context.Provider :?> IParser).Parse (Some token) tokens 
+                        (context.WithClosures(["empty"; "endfor"]).WithNewModel(context.Model.Add(variable_descriptors)))
+                let node_list_empty, remaining2 =
+                    match node_list_body.[node_list_body.Length-1].Token with
+                    | NDjango.Lexer.Block b -> 
+                        if b.Verb.RawText = "empty" then
+                            (context.Provider :?> IParser).Parse (Some token) remaining 
+                                (context.WithClosures(["endfor"]).WithNewModel(context.Model.Add(variable_descriptors)))
+                        else
+                            [], remaining
+                    | _ -> [], remaining
+
+                match enumerator with
+                | Some enumerator 
+                    ->
+                         let dups = variables |> List.filter (fun var -> (snd var).IsSome) |> List.map (fun var -> (snd var).Value)
+                         let variables = variables |> List.map (fun var -> fst var)
+                         (({
+                            new TagNode(context, token, this, enumerator, variables, node_list_body, node_list_empty, reversed)
+                                with
+                                    override x.elements =
+                                        (enumerator :> INode) :: dups @ base.elements
+                            } :> NDjango.Interfaces.INodeImpl), 
+                            context, remaining2)
+                | None ->
+                    raise (SyntaxError ("malformed 'for' tag",
+                                            List.append node_list_body node_list_empty,
+                                            remaining2))
+                
+    and private ParentContextDescriptor(orig: IDjangoType) =
         interface IDjangoType with
             member x.Name = "parent"
             member x.Type = DjangoType.DjangoType
@@ -139,7 +242,7 @@ module internal For =
                     ValueDjangoType("last") :> IDjangoType;
                     ] |> Seq.append parent
     
-    type TagNode(
+    and TagNode(
                 provider,
                 token,
                 tag,
@@ -268,108 +371,6 @@ module internal For =
             else 
                 createWalker walker enumerator
 
-    [<NDjango.ParserNodes.Description("Loops over each item in a collection.")>]
-    type Tag() =
 
-        interface NDjango.Interfaces.ITag with 
-            member x.is_header_tag = false
-            member this.Perform token context tokens =
-                let enumerator, variables, reversed = 
-                    match List.rev token.Args with
-                        | var::MatchToken("in")::syntax -> 
-                            Some var,
-                            syntax,
-                            false
-                        | MatchToken("reversed")::var::MatchToken("in")::syntax -> 
-                            Some var,
-                            syntax,
-                            true
-                        | _ -> 
-                            None,
-                            [],
-                            false
-
-                let enumerator = 
-                    match enumerator with
-                    | Some e -> Some (FilterExpression(context, e))
-                    | None -> None
-
-                // extract variable names from tokens, (including splitting apart names stuck together in a single token separated by ',')
-                let variables = 
-                    variables |> 
-                    List.rev |>  
-                    List.fold 
-                        (fun external_accumulator token -> // for every token
-                            external_accumulator @
-                                (token.RawText.Split([|','|], StringSplitOptions.RemoveEmptyEntries) |>
-                                    Array.toList |>
-                                    List.fold 
-                                        (fun internal_accumulator variable -> // for every variable name
-                                            match external_accumulator |> List.tryFind (fun item -> fst item = variable),
-                                                  internal_accumulator |> List.tryFind (fun item -> fst item = variable),
-                                                  variable = "forloop" with
-                                            | _, _, true ->
-                                                internal_accumulator @
-                                                [
-                                                    (variable, 
-                                                           Some ({new ErrorNode(context,Text token,
-                                                                    new Error(1, "Loop variable named 'forloop' will not be availble in the for loop body"))
-                                                                  with override x.elements = []
-                                                                  } :> INode)
-                                                    )
-                                                    ]
-                                            | None, None, false ->
-                                                internal_accumulator @ [(variable, None)]
-                                            | _, _, _ ->
-                                                internal_accumulator @ 
-                                                [
-                                                    (variable, 
-                                                           Some ({new ErrorNode(context,Text token,
-                                                                    new Error(1, "Duplicate name '" + variable + "' in the variable list"))
-                                                                  with override x.elements = []
-                                                                  } :> INode)
-                                                    )
-                                                    ]
-                                            )
-                                        [] 
-                                )
-                            ) 
-                        []  
-
-                let variable_descriptors =
-                    variables |> 
-                        List.filter (fun var -> (snd var).IsNone) |> List.map (fun var -> NDjango.TypeResolver.ValueDjangoType(fst var) :> IDjangoType)
-                let variable_descriptors = (ForContextDescriptor(context) :> IDjangoType) :: variable_descriptors
-
-                let node_list_body, remaining = 
-                    (context.Provider :?> IParser).Parse (Some token) tokens 
-                        (context.WithClosures(["empty"; "endfor"]).WithNewModel(context.Model.Add(variable_descriptors)))
-                let node_list_empty, remaining2 =
-                    match node_list_body.[node_list_body.Length-1].Token with
-                    | NDjango.Lexer.Block b -> 
-                        if b.Verb.RawText = "empty" then
-                            (context.Provider :?> IParser).Parse (Some token) remaining 
-                                (context.WithClosures(["endfor"]).WithNewModel(context.Model.Add(variable_descriptors)))
-                        else
-                            [], remaining
-                    | _ -> [], remaining
-
-                match enumerator with
-                | Some enumerator 
-                    ->
-                         let dups = variables |> List.filter (fun var -> (snd var).IsSome) |> List.map (fun var -> (snd var).Value)
-                         let variables = variables |> List.map (fun var -> fst var)
-                         (({
-                            new TagNode(context, token, this, enumerator, variables, node_list_body, node_list_empty, reversed)
-                                with
-                                    override x.elements =
-                                        (enumerator :> INode) :: dups @ base.elements
-                            } :> NDjango.Interfaces.INodeImpl), 
-                            context, remaining2)
-                | None ->
-                    raise (SyntaxError ("malformed 'for' tag",
-                                            List.append node_list_body node_list_empty,
-                                            remaining2))
-                
 
 

@@ -57,7 +57,8 @@ module internal Cycle =
         member this.Values = values
         member this.OrigValues = origValues
         member this.Value = List.head values
-        
+
+
     [<NDjango.ParserNodes.Description("Cycles among the given strings each time this tag is encountered.")>]
     type TagNode(provider, token, tag, name: string, values: Variable list) =
         inherit NDjango.ParserNodes.TagNode(provider, token, tag)
@@ -93,12 +94,12 @@ module internal Cycle =
                 }
                 
         override x.elements = base.elements @ (values |> List.map(fun v -> v :> INode))
-
+        
     /// Note that the original django implementation returned the same instance of the 
     /// CycleNode for each instance of a given named cycle tag. This implementation
     /// Relies on the CycleNode instances to communicate with each other through 
     /// the context object available at render time to synchronize their activities
-    type Tag() = 
+    and Tag() = 
 
         let checkForOldSyntax (value:TextToken) = 
             if (String.IsNullOrEmpty value.RawText) then false
@@ -141,4 +142,3 @@ module internal Cycle =
                         
                 let values = List.map (fun v -> new Variable(context, v)) values
                 ((new TagNode(context, token, this, name, values) :> NDjango.Interfaces.INodeImpl), context, tokens)
-

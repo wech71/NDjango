@@ -509,7 +509,7 @@ module Abstract =
                                 (args |> List.rev |> 
                                     List.fold 
                                         (fun state elem -> 
-                                            match String.trim [','] elem.RawText with                               
+                                            match elem.RawText.Trim [|','|] with                               
                                             | "" -> state 
                                             | _ as trimmed -> (elem.WithValue trimmed None)::state ) 
                                         []

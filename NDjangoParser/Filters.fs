@@ -331,7 +331,7 @@ module internal Filters =
             member x.DefaultValue = "yes,no,maybe" :> obj
             member x.Perform value = raise (RenderingError("YesNoFilter requires a parameter"))
             member x.PerformWithParam (value,arg) = 
-                let strYesNoMaybe = String.split [','] (Convert.ToString (arg))
+                let strYesNoMaybe = Convert.ToString(arg).Split [|' '|] |> Array.toList
                 if strYesNoMaybe.Length < 2 then
                     value
                 else
@@ -428,7 +428,7 @@ module internal Filters =
             member x.DefaultValue = "s" :> obj
             member x.Perform value = raise (RenderingError("PluralizeFilter requires a parameter"))
             member x.PerformWithParam (value, arg) = 
-                let strPlurals = String.split [','] (Convert.ToString (arg))
+                let strPlurals = Convert.ToString(arg).Split [|' '|] |> Array.toList
                 if strPlurals.Length > 2 then
                     "" :> obj
                 else

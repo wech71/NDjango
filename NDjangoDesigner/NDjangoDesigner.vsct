@@ -15,13 +15,13 @@
         defining some of the constants that we will use inside the file. -->
 
   <!--This is the file that defines the IDs for all the commands exposed by VisualStudio. -->
-  <Extern href="stdidcmd.h"/>
+  <Extern href="stdidcmd.h" />
 
   <!--This header contains the command ids for the menus provided by the shell. -->
-  <Extern href="vsshlids.h"/>
+  <Extern href="vsshlids.h" />
 
   <!--Definition of some VSCT specific constants. In this sample we use it for the IDs inside the guidOfficeIcon group. -->
-  <Extern href="msobtnid.h"/>
+  <!--<Extern href="msobtnid.h" xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" />-->
 
 
 
@@ -44,7 +44,7 @@
          must be a menu. -->
     <Groups>
       <Group guid="guidNDjangoDesignerCmdSet" id="cmdidNDjangoDesignerGroup" priority="0x0100">
-        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_FOLDERNODE"/>
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_FOLDERNODE" />
       </Group>
 
     </Groups>
@@ -63,7 +63,7 @@
 
 
       <Button guid="guidNDjangoDesignerCmdSet" id="cmdidAddView" priority="0x0100" type="Button">
-        <Parent guid="guidNDjangoDesignerCmdSet" id="cmdidNDjangoDesignerGroup"/>
+        <Parent guid="guidNDjangoDesignerCmdSet" id="cmdidNDjangoDesignerGroup" />
         <Icon guid="guidImages" id="bmpPic1" />
         <Strings>
           <CommandName>cmdidAddView</CommandName>
@@ -85,7 +85,7 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used 
             inside a button definition. An important aspect of this declaration is that the element id 
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-      <Bitmap guid="guidImages" href="Resources\django-icon-24.bmp" usedList="bmpPic1"/>
+      <Bitmap guid="guidImages" href="Resources\django-icon-24.bmp" usedList="bmpPic1" />
 
     </Bitmaps>
  
@@ -108,7 +108,7 @@
       <IDSymbol name="cmdidNDjangoDesignerGroup" value="0x1020" />
       <IDSymbol name="cmdidAddView" value="0x0101" />
     </GuidSymbol>
-    <GuidSymbol name="guidImages" value="{b5f6765e-ad3b-47b8-ad52-e0f112ea3887}" >
+    <GuidSymbol name="guidImages" value="{b5f6765e-ad3b-47b8-ad52-e0f112ea3887}">
       <IDSymbol name="bmpPic1" value="1" />
       <IDSymbol name="bmpPic2" value="2" />
       <IDSymbol name="bmpPicSearch" value="3" />
