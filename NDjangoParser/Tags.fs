@@ -429,6 +429,10 @@ module internal Misc =
     ///     {% with person.some_sql_method as total %}
     ///         {{ total }} object{{ total|pluralize }}
     ///     {% endwith %}
+    /// or
+    ///     {% with somevar=123 %}
+    ///         {{ somevar }} 
+    ///     {% endwith %}
     [<Description("Adds a value to the context for the enclosed tags.")>]
     type WithTag() =
         interface ITag with
@@ -436,8 +440,12 @@ module internal Misc =
             member this.Perform token context tokens =
                 let expression, name =
                     match token.Args with
-                    | var::MatchToken("as")::name::[] ->
-                        Some (FilterExpression(context, var)), name.RawText
+                    | var::MatchToken("as")::name::[] 
+                        -> Some (FilterExpression(context, var)), name.RawText
+                    | expr when expr.Length = 1 && expr.Head.RawText.Contains("=")
+                        -> (let m =  Regex.Match(expr.Head.RawText,@"(.+)=(.+)")
+                            Some (FilterExpression(context, expr.Head.CreateToken(m.Groups.Item(2).Index, m.Groups.Item(2).Length))), m.Groups.Item(1).Value
+                           )
                     | _ -> None, ""
                 let extra_vars =
                     match expression with
